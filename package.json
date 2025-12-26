@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "push": "git add . && git commit -m \"Auto-save from npm\" && git push"
   },
   "dependencies": {
     "lucide-react": "^0.562.0",

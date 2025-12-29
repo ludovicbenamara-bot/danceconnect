@@ -5,7 +5,7 @@ import { ChevronLeft, Calendar as CalendarIcon, Clock, MapPin, User, ArrowRight,
 
 const MyBookings = () => {
     const navigate = useNavigate();
-    const { bookings } = useData();
+    const { bookings, startChat } = useData();
     const [filter, setFilter] = useState('upcoming');
 
     const filteredBookings = bookings.filter(b => b.status === filter);
@@ -87,9 +87,11 @@ const MyBookings = () => {
                                             Modifier
                                         </button>
                                         <button
-                                            onClick={() => navigate('/student/social')}
-                                            className="p-4 bg-zinc-800 text-purple-400 rounded-2xl border border-zinc-700 hover:text-white transition-colors"
-                                        >
+                                            onClick={() => {
+                                                const chatId = startChat(booking.teacherId);
+                                                navigate('/social', { state: { selectedChat: { id: chatId } } });
+                                            }}
+                                            className="h-10 w-10 bg-zinc-800 rounded-full flex items-center justify-center text-white border border-zinc-700 hover:bg-zinc-700 transition-colors">
                                             <MessageCircle size={20} />
                                         </button>
                                     </>

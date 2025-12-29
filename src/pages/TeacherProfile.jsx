@@ -1,26 +1,37 @@
 import React, { useState } from 'react';
 import { useData } from '../context/DataContext';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Star, MapPin, Clock, ArrowLeft, Heart, Share2, Play, Check, X, Calendar as CalendarIcon, Info } from 'lucide-react';
+import { Star, MapPin, Clock, ArrowLeft, Heart, Share2, Play, Check, X, Calendar as CalendarIcon, Info, MessageCircle } from 'lucide-react';
 
 const TeacherProfile = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { teachers, favorites, toggleFavorite } = useData();
+    const { teachers, favorites, toggleFavorite, slots, startChat } = useData();
     const [isBookingOpen, setIsBookingOpen] = useState(false);
     const [selectedSlot, setSelectedSlot] = useState(null);
 
     const teacher = teachers.find(t => t.id === parseInt(id));
     const isFavorite = favorites.includes(parseInt(id));
 
-    // Mock slots (could be moved to context later)
-    const slots = [
-        { id: 1, day: 'Lun', date: '28 Déc', time: '18:00', available: true },
-        { id: 2, day: 'Lun', date: '28 Déc', time: '19:30', available: true },
-        { id: 3, day: 'Mar', date: '29 Déc', time: '17:00', available: false },
-        { id: 4, day: 'Mer', date: '30 Déc', time: '10:00', available: true },
-        { id: 5, day: 'Ven', date: '1 Jan', time: '18:00', available: true },
-    ];
+    // Get available slots for this teacher from Context
+    const teacherSlots = slots.filter(s =>
+        s.teacherId === parseInt(id) && s.status === 'available'
+    ).map(s => {
+        // Format date/time for display
+        const dateObj = new Date(s.date);
+        const dayName = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'][dateObj.getDay()];
+        const monthName = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'][dateObj.getMonth()];
+        const formattedDate = `${dateObj.getDate()} ${monthName}`;
+
+        return {
+            id: s.id,
+            day: dayName,
+            date: formattedDate,
+            time: s.time,
+            fullDate: s.date, // Keep original for reference
+            available: true
+        };
+    });
 
     if (!teacher) return <div className="text-white p-10">Professeur non trouvé</div>;
 
@@ -45,6 +56,15 @@ const TeacherProfile = () => {
                         <ArrowLeft size={20} />
                     </button>
                     <div className="flex gap-2">
+                        <button
+                            onClick={() => {
+                                const chatId = startChat(teacher.id);
+                                navigate('/social', { state: { selectedChat: { id: chatId } } });
+                            }}
+                            className="p-2 bg-black/50 backdrop-blur-md rounded-full text-white hover:bg-black/70 transition-colors"
+                        >
+                            <MessageCircle size={20} />
+                        </button>
                         <button
                             onClick={handleToggleFavorite}
                             className={`p-2 backdrop-blur-md rounded-full text-white transition-all ${isFavorite ? 'bg-pink-600 border border-pink-500 shadow-[0_0_20px_rgba(219,39,119,0.4)]' : 'bg-black/50'
@@ -168,37 +188,42 @@ const TeacherProfile = () => {
                             </div>
 
                             <div className="space-y-4 mb-10 max-h-[40vh] overflow-y-auto pr-2 no-scrollbar">
-                                {slots.map(slot => (
-                                    <button
-                                        key={slot.id}
-                                        disabled={!slot.available}
-                                        onClick={() => setSelectedSlot(slot.id)}
-                                        className={`w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all ${!slot.available
-                                            ? 'bg-zinc-900/50 border-zinc-900 opacity-40 grayscale cursor-not-allowed'
-                                            : selectedSlot === slot.id
-                                                ? 'bg-purple-900/20 border-purple-500 text-white'
-                                                : 'bg-zinc-800 border-zinc-800 text-zinc-300 hover:border-zinc-700'
-                                            }`}
-                                    >
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-12 text-center">
-                                                <p className="text-xs font-bold uppercase text-purple-400">{slot.day}</p>
-                                                <p className="text-sm font-bold">{slot.date.split(' ')[0]}</p>
+                                {teacherSlots.length > 0 ? (
+                                    teacherSlots.map(slot => (
+                                        <button
+                                            key={slot.id}
+                                            disabled={!slot.available}
+                                            onClick={() => setSelectedSlot(slot.id)}
+                                            className={`w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all ${!slot.available
+                                                ? 'bg-zinc-900/50 border-zinc-900 opacity-40 grayscale cursor-not-allowed'
+                                                : selectedSlot === slot.id
+                                                    ? 'bg-purple-900/20 border-purple-500 text-white'
+                                                    : 'bg-zinc-800 border-zinc-800 text-zinc-300 hover:border-zinc-700'
+                                                }`}
+                                        >
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-12 text-center">
+                                                    <p className="text-xs font-bold uppercase text-purple-400">{slot.day}</p>
+                                                    <p className="text-sm font-bold">{slot.date}</p>
+                                                </div>
+                                                <div className="h-8 w-[1px] bg-zinc-700" />
+                                                <div className="flex items-center gap-2">
+                                                    <Clock size={16} className="text-zinc-500" />
+                                                    <span className="font-bold">{slot.time}</span>
+                                                </div>
                                             </div>
-                                            <div className="h-8 w-[1px] bg-zinc-700" />
-                                            <div className="flex items-center gap-2">
-                                                <Clock size={16} className="text-zinc-500" />
-                                                <span className="font-bold">{slot.time}</span>
-                                            </div>
-                                        </div>
-                                        {selectedSlot === slot.id && (
-                                            <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center">
-                                                <Check size={14} className="text-white" />
-                                            </div>
-                                        )}
-                                        {!slot.available && <span className="text-xs font-medium uppercase text-zinc-600">Complet</span>}
-                                    </button>
-                                ))}
+                                            {selectedSlot === slot.id && (
+                                                <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center">
+                                                    <Check size={14} className="text-white" />
+                                                </div>
+                                            )}
+                                        </button>
+                                    ))
+                                ) : (
+                                    <div className="text-center py-8 text-zinc-500">
+                                        <p>Aucun créneau disponible pour le moment.</p>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="bg-zinc-800/50 rounded-2xl p-4 mb-8 flex items-start gap-3 border border-zinc-800">
@@ -215,13 +240,14 @@ const TeacherProfile = () => {
                                     : 'bg-zinc-800 text-zinc-600 cursor-not-allowed'
                                     }`}
                                 onClick={() => {
-                                    const selectedSlotData = slots.find(s => s.id === selectedSlot);
+                                    const selectedSlotData = teacherSlots.find(s => s.id === selectedSlot);
                                     navigate('/checkout', {
                                         state: {
                                             teacherId: teacher.id,
                                             teacherName: teacher.name,
                                             price: teacher.price,
-                                            slot: `${selectedSlotData.day} ${selectedSlotData.date} - ${selectedSlotData.time}`
+                                            slotId: selectedSlotData.id, // Pass ID for tracking
+                                            slot: `${selectedSlotData.date} - ${selectedSlotData.time}`
                                         }
                                     });
                                     setIsBookingOpen(false);

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useData } from '../context/DataContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ChevronLeft, CreditCard, ShieldCheck, CheckCircle2, Apple, Wallet } from 'lucide-react';
@@ -6,35 +6,57 @@ import { ChevronLeft, CreditCard, ShieldCheck, CheckCircle2, Apple, Wallet } fro
 const Checkout = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { addBooking } = useData();
+    const data = useData();
+    console.log('Checkout Render - Data Context:', data);
+
+    // Safety check for context
+    if (!data) {
+        console.error('UseData is invalid/null');
+        return <div className="text-white pt-20">Error: Context not loaded</div>;
+    }
+
+    const { bookSlot, currentUser, loading } = data;
+    console.log('Checkout Render - User:', currentUser, 'Loading:', loading);
+
     const [isProcessing, setIsProcessing] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
+    const [error, setError] = useState('');
 
-    // Mock data if no state is passed
-    const { teacherId, teacherName, price, slot } = location.state || {
-        teacherId: 1,
+    // Mock data if no state is passed (Fallback)
+    const stateParams = location.state || {
         teacherName: 'Sophie Martin',
         price: 'CHF 65',
         slot: 'Lundi 28 Déc. - 14:00'
     };
+    console.log('Checkout Render - Params:', stateParams);
 
-    const handlePayment = () => {
+    const { teacherName, price, slot, slotId } = stateParams;
+
+    const handlePayment = async () => {
+        if (!currentUser) {
+            // Should normally not happen if route is protected, but safe check
+            navigate('/login');
+            return;
+        }
+
+        if (!slotId) {
+            setError("Erreur: Créneau non valide (Mode démo ?)");
+            return;
+        }
+
         setIsProcessing(true);
-        // Mock processing time
-        setTimeout(() => {
-            addBooking({
-                teacherId,
-                teacher: teacherName,
-                price,
-                date: slot.split(' - ')[0],
-                time: slot.split(' - ')[1],
-                location: 'Paris (lieu à définir)', // Simplified
-                style: 'Danse', // Simplified
-                image: 'https://images.unsplash.com/photo-1518834107812-67b0b7c58434?auto=format&fit=crop&q=80&w=100'
-            });
-            setIsProcessing(false);
+        setError('');
+
+        try {
+            // Real Supabase call
+            await bookSlot(slotId);
             setIsSuccess(true);
-        }, 2000);
+        } catch (err) {
+            console.error(err);
+            setError("Impossible de confirmer la réservation. Veuillez réessayer.");
+        } finally {
+            setIsProcessing(false);
+        }
     };
 
     if (isSuccess) {
@@ -179,6 +201,7 @@ const Checkout = () => {
                             <>Payer {price}</>
                         )}
                     </button>
+                    {error && <p className="text-red-500 text-xs text-center font-bold mt-2">{error}</p>}
                     <p className="text-[10px] text-zinc-600 text-center mt-4 px-10">
                         En réservant, vous acceptez nos <span className="underline">Conditions Générales de Vente</span>.
                     </p>

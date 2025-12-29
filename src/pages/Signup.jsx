@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, User, Mail, Sparkles, Check, ArrowRight, ShieldCheck, Music, Star } from 'lucide-react';
+import { useData } from '../context/DataContext';
 
 const Signup = () => {
     const navigate = useNavigate();
+    const { signup } = useData();
     const [step, setStep] = useState(1);
     const [formData, setFormData] = useState({
         role: '',
         name: '',
         email: '',
+        password: '',
         interests: []
     });
     const [isLoading, setIsLoading] = useState(false);
@@ -29,14 +32,22 @@ const Signup = () => {
         else finishSignup();
     };
 
-    const finishSignup = () => {
+    const finishSignup = async () => {
         setIsLoading(true);
-        setTimeout(() => {
-            localStorage.setItem('userRole', formData.role);
-            localStorage.setItem('isLoggedIn', 'true');
+        try {
+            await signup(formData.email, formData.password, {
+                role: formData.role,
+                name: formData.name,
+                interests: formData.interests
+            });
+            // If signup successful (and auto-confirm disabled or handled), navigate
             navigate(formData.role === 'teacher' ? '/teacher' : '/student');
+        } catch (error) {
+            console.error(error);
+            alert('Erreur lors de l\'inscription: ' + error.message);
+        } finally {
             setIsLoading(false);
-        }, 2000);
+        }
     };
 
     return (
@@ -68,8 +79,8 @@ const Signup = () => {
                             <button
                                 onClick={() => setFormData({ ...formData, role: 'student' })}
                                 className={`w-full p-6 pb-8 rounded-[2.5rem] border-2 text-left transition-all ${formData.role === 'student'
-                                        ? 'bg-purple-900/20 border-purple-500 shadow-[0_10px_40px_rgba(147,51,234,0.3)]'
-                                        : 'bg-zinc-900 border-zinc-800 text-zinc-500'
+                                    ? 'bg-purple-900/20 border-purple-500 shadow-[0_10px_40px_rgba(147,51,234,0.3)]'
+                                    : 'bg-zinc-900 border-zinc-800 text-zinc-500'
                                     }`}
                             >
                                 <div className="flex justify-between items-start mb-6">
@@ -85,8 +96,8 @@ const Signup = () => {
                             <button
                                 onClick={() => setFormData({ ...formData, role: 'teacher' })}
                                 className={`w-full p-6 pb-8 rounded-[2.5rem] border-2 text-left transition-all ${formData.role === 'teacher'
-                                        ? 'bg-purple-900/20 border-purple-500 shadow-[0_10px_40px_rgba(147,51,234,0.3)]'
-                                        : 'bg-zinc-900 border-zinc-800 text-zinc-500'
+                                    ? 'bg-purple-900/20 border-purple-500 shadow-[0_10px_40px_rgba(147,51,234,0.3)]'
+                                    : 'bg-zinc-900 border-zinc-800 text-zinc-500'
                                     }`}
                             >
                                 <div className="flex justify-between items-start mb-6">
@@ -140,6 +151,20 @@ const Signup = () => {
                                     />
                                 </div>
                             </div>
+
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] text-zinc-600 font-black uppercase tracking-widest ml-1">Mot de passe</label>
+                                <div className="relative group">
+                                    <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-purple-500 transition-colors" size={18} />
+                                    <input
+                                        type="password"
+                                        value={formData.password || ''}
+                                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                        placeholder="••••••••"
+                                        className="w-full bg-zinc-900 border border-zinc-800 rounded-2xl py-4 pl-12 pr-4 text-sm text-white focus:border-purple-500 focus:bg-zinc-950 transition-all outline-none"
+                                    />
+                                </div>
+                            </div>
                         </div>
                     </div>
                 )}
@@ -160,8 +185,8 @@ const Signup = () => {
                                     key={style}
                                     onClick={() => toggleInterest(style)}
                                     className={`px-6 py-3 rounded-2xl font-bold text-sm transition-all border ${formData.interests.includes(style)
-                                            ? 'bg-purple-600 border-purple-400 text-white shadow-[0_8px_20px_rgba(147,51,234,0.4)]'
-                                            : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:border-zinc-700'
+                                        ? 'bg-purple-600 border-purple-400 text-white shadow-[0_8px_20px_rgba(147,51,234,0.4)]'
+                                        : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:border-zinc-700'
                                         }`}
                                 >
                                     {style}
@@ -186,8 +211,8 @@ const Signup = () => {
                         disabled={(step === 1 && !formData.role) || (step === 2 && (!formData.name || !formData.email)) || isLoading}
                         onClick={handleNext}
                         className={`w-full py-4 rounded-2xl font-black text-lg transition-all flex items-center justify-center gap-3 ${(step === 1 && !formData.role) || (step === 2 && (!formData.name || !formData.email)) || isLoading
-                                ? 'bg-zinc-800 text-zinc-600 cursor-not-allowed'
-                                : 'bg-white text-black hover:scale-[1.02] active:scale-[0.98] shadow-2xl'
+                            ? 'bg-zinc-800 text-zinc-600 cursor-not-allowed'
+                            : 'bg-white text-black hover:scale-[1.02] active:scale-[0.98] shadow-2xl'
                             }`}
                     >
                         {isLoading ? (

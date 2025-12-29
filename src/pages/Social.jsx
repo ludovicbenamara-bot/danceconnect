@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import { useData } from '../context/DataContext';
 import {
     Search, Edit3, ChevronLeft, Send,
     MoreHorizontal, Phone, Video, Image as ImageIcon,
@@ -7,41 +8,41 @@ import {
 } from 'lucide-react';
 
 const Social = () => {
+    const { chats, teachers, currentUser, sendMessage } = useData();
     const location = useLocation();
-    const isTeacher = location.pathname.includes('/teacher');
-    const [selectedChat, setSelectedChat] = useState(null);
+    const [selectedChat, setSelectedChat] = useState(location.state?.selectedChat || null);
     const [messageInput, setMessageInput] = useState('');
 
-    const conversations = [
-        {
-            id: 1,
-            name: isTeacher ? 'Sarah M.' : 'Sophie Martin',
-            image: isTeacher
-                ? 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=200'
-                : 'https://images.unsplash.com/photo-1518834107812-67b0b7c58434?auto=format&fit=crop&q=80&w=200',
-            lastMsg: isTeacher ? 'Est-ce qu\'on peut décaler le cours ?' : 'Parfait, à tout à l\'heure !',
-            time: '14:20',
-            unread: 2,
-            online: true
-        },
-        {
-            id: 2,
-            name: isTeacher ? 'Marc V.' : 'Thomas D.',
-            image: isTeacher
-                ? 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&q=80&w=200'
-                : 'https://images.unsplash.com/photo-1527980965255-d3b416303d12?auto=format&fit=crop&q=80&w=200',
-            lastMsg: 'Merci pour le cours de hier !',
-            time: 'Hier',
-            unread: 0,
-            online: false
-        }
-    ];
+    // Transform chats to display format
+    const myChats = chats.filter(c => c.participants.includes(currentUser.id)).map(chat => {
+        const otherParticipantId = chat.participants.find(p => p !== currentUser.id);
+        const otherParticipant = teachers.find(t => t.id === otherParticipantId) || { name: 'Utilisateur', image: 'https://via.placeholder.com/150' };
 
-    const currentMessages = [
-        { id: 1, text: 'Hello ! J\'ai une question sur le cours de demain.', sender: 'them', time: '14:15' },
-        { id: 2, text: 'Oui, dis-moi tout ? 😊', sender: 'me', time: '14:16' },
-        { id: 3, text: isTeacher ? 'Est-ce qu\'on peut décaler le cours à 15h ?' : 'Est-ce que je dois apporter des chaussures spécifiques ?', sender: 'them', time: '14:18' },
-    ];
+        const lastMessage = chat.messages[chat.messages.length - 1];
+
+        return {
+            id: chat.id,
+            name: otherParticipant.name,
+            image: otherParticipant.image,
+            lastMsg: lastMessage ? lastMessage.text : 'Nouvelle conversation',
+            time: lastMessage ? new Date(lastMessage.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+            unread: 0, // Simplified for now
+            online: true, // Simplified
+            messages: chat.messages,
+            originalChat: chat
+        };
+    });
+
+    const handleSendMessage = () => {
+        if (!messageInput.trim() || !selectedChat) return;
+        sendMessage(selectedChat.id, messageInput);
+        setMessageInput('');
+
+    };
+
+    // Re-sync selected chat if it changes in context
+    const activeChatData = selectedChat ? myChats.find(c => c.id === selectedChat.id) : null;
+    const messagesToDisplay = activeChatData ? activeChatData.messages : [];
 
     if (selectedChat) {
         return (
@@ -72,16 +73,16 @@ const Social = () => {
                     <div className="text-center py-4">
                         <span className="text-[10px] font-bold text-zinc-600 bg-zinc-900/50 px-3 py-1 rounded-full uppercase tracking-widest">Aujourd'hui</span>
                     </div>
-                    {currentMessages.map(msg => (
-                        <div key={msg.id} className={`flex ${msg.sender === 'me' ? 'justify-end' : 'justify-start'}`}>
-                            <div className={`max-w-[80%] p-3 rounded-2xl ${msg.sender === 'me'
+                    {messagesToDisplay.map(msg => (
+                        <div key={msg.id} className={`flex ${msg.senderId === currentUser.id ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`max-w-[80%] p-3 rounded-2xl ${msg.senderId === currentUser.id
                                 ? 'bg-purple-600 text-white rounded-tr-none'
                                 : 'bg-zinc-900 text-zinc-200 rounded-tl-none border border-zinc-800'
                                 }`}>
                                 <p className="text-sm leading-relaxed">{msg.text}</p>
-                                <div className={`flex items-center gap-1 mt-1 ${msg.sender === 'me' ? 'justify-end text-purple-200' : 'text-zinc-500'}`}>
-                                    <span className="text-[8px]">{msg.time}</span>
-                                    {msg.sender === 'me' && <CheckCheck size={10} />}
+                                <div className={`flex items-center gap-1 mt-1 ${msg.senderId === currentUser.id ? 'justify-end text-purple-200' : 'text-zinc-500'}`}>
+                                    <span className="text-[8px]">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                    {msg.senderId === currentUser.id && <CheckCheck size={10} />}
                                 </div>
                             </div>
                         </div>
@@ -101,6 +102,7 @@ const Social = () => {
                         />
                         <button className="p-2 text-zinc-500 hover:text-white"><ImageIcon size={20} /></button>
                         <button
+                            onClick={handleSendMessage}
                             className={`p-2 rounded-xl transition-all ${messageInput.trim() ? 'bg-purple-600 text-white' : 'text-zinc-500'
                                 }`}
                         >
@@ -136,7 +138,7 @@ const Social = () => {
 
             {/* Conversations List */}
             <div className="px-6 space-y-2">
-                {conversations.map(chat => (
+                {myChats.map(chat => (
                     <button
                         key={chat.id}
                         onClick={() => setSelectedChat(chat)}

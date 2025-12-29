@@ -1,19 +1,20 @@
 import React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { useData } from '../context/DataContext';
 import {
     CreditCard, Heart, History,
     Shield, Bell, HelpCircle, ChevronRight,
     Star, Landmark, GraduationCap, LogOut
 } from 'lucide-react';
 
-const ProfileItem = ({ icon: IconComp, label, value, color = "text-zinc-400", onClick }) => (
+const ProfileItem = ({ icon: Icon, label, value, color = "text-zinc-400", onClick }) => (
     <button
         onClick={onClick}
         className="w-full flex items-center justify-between p-4 bg-zinc-900/50 hover:bg-zinc-800 rounded-2xl border border-zinc-800/50 transition-all active:scale-[0.98]"
     >
         <div className="flex items-center gap-4">
             <div className={`p-2 rounded-xl bg-zinc-900 border border-zinc-800 ${color}`}>
-                <IconComp size={20} />
+                <Icon size={20} />
             </div>
             <div className="text-left">
                 <p className="text-sm font-bold text-white">{label}</p>
@@ -25,16 +26,30 @@ const ProfileItem = ({ icon: IconComp, label, value, color = "text-zinc-400", on
 );
 
 const Profile = () => {
-    const location = useLocation();
     const navigate = useNavigate();
-    const isTeacher = location.pathname.includes('/teacher');
+    const { currentUser, logout, loading } = useData();
+
+    // If loading, show nothing or a spinner
+    if (loading) return <div className="min-h-screen bg-zinc-950 flex items-center justify-center text-white">Chargement...</div>;
+
+    // If not logged in and not loading, redirect (or show empty state, but normally we redirect)
+    // For now, let's just be safe
+    if (!currentUser) {
+        // We might want to render a "Not logged in" view or redirect
+        return (
+            <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center text-white gap-4">
+                <p>Non connecté</p>
+                <button onClick={() => navigate('/login')} className="text-purple-500 underline">Se connecter</button>
+            </div>
+        );
+    }
+
+    const isTeacher = currentUser.role === 'teacher';
 
     const userInfo = {
-        name: isTeacher ? 'Ludovic' : 'Sarah M.',
-        email: isTeacher ? 'ludovic@danceconnect.com' : 'sarah@example.com',
-        image: isTeacher
-            ? 'https://images.unsplash.com/photo-1547153760-18fc86324498?auto=format&fit=crop&q=80&w=200'
-            : 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=200',
+        name: currentUser.name || 'Utilisateur',
+        email: currentUser.email,
+        image: currentUser.image,
         badge: isTeacher ? 'Professeur Certifié' : 'Membre Passionné'
     };
 
@@ -102,10 +117,13 @@ const Profile = () => {
 
                 {/* Logout Button */}
                 <button
-                    onClick={() => {
-                        localStorage.removeItem('isLoggedIn');
-                        localStorage.removeItem('userRole');
-                        navigate('/');
+                    onClick={async () => {
+                        try {
+                            await logout();
+                            navigate('/');
+                        } catch (error) {
+                            console.error('Logout failed', error);
+                        }
                     }}
                     className="w-full flex items-center justify-center gap-2 p-4 bg-zinc-900/30 hover:bg-red-500/10 text-zinc-500 hover:text-red-500 rounded-2xl border border-zinc-900 transition-all font-bold text-sm group"
                 >

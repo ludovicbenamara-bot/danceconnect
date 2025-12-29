@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import { useData } from '../context/DataContext';
 import {
     ChevronLeft, ChevronRight, Plus,
     Calendar as CalendarIcon, Clock, MapPin,
-    User, X, Star, MoreHorizontal
+    User, X, Star, MoreHorizontal, Trash2
 } from 'lucide-react';
 
 const Calendar = () => {
@@ -12,7 +13,9 @@ const Calendar = () => {
     const [selectedDate, setSelectedDate] = useState(new Date().getDate());
     const [selectedEvent, setSelectedEvent] = useState(null);
 
-    // Mock days for the current week
+    const { slots, addSlot, removeSlot } = useData();
+    const currentTeacherId = 1; // Simulated
+
     const days = [
         { name: 'Lun', date: 23 },
         { name: 'Mar', date: 24 },
@@ -23,46 +26,43 @@ const Calendar = () => {
         { name: 'Dim', date: 29 },
     ];
 
-    const events = [
-        {
-            id: 1,
-            title: isTeacher ? 'Cours Particulier - Salsa' : 'Salsa & Bachata',
-            time: '14:00 - 15:30',
-            location: 'Studio Marais, Paris',
-            person: isTeacher ? 'Marie L.' : 'Elena Rodriguez',
-            style: 'Salsa',
-            color: 'bg-purple-500',
-            price: '30 CHF',
-            date: 26,
-            rating: 4.8
-        },
-        {
-            id: 2,
-            title: isTeacher ? 'Groupe Débutant - Hip Hop' : 'Hip Hop Street',
-            time: '16:30 - 18:00',
-            location: 'Salle d\'Art, Paris 11',
-            person: isTeacher ? '8 Élèves' : 'Lucas Dubois',
-            style: 'Hip Hop',
-            color: 'bg-blue-500',
-            price: '25 CHF',
-            date: 26,
-            rating: 4.9
-        },
-        {
-            id: 3,
-            title: 'Ballet Classique',
-            time: '09:00 - 10:30',
-            location: 'Opéra Studio',
-            person: isTeacher ? '12 Élèves' : 'Sophie Martin',
-            style: 'Ballet',
-            color: 'bg-pink-500',
-            price: '40 CHF',
-            date: 27,
-            rating: 5.0
-        }
-    ];
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [newSlotTime, setNewSlotTime] = useState('10:00');
 
-    const filteredEvents = events.filter(e => e.date === selectedDate);
+    // Filter slots for the selected date and current teacher
+    const daySlots = slots.filter(s =>
+        s.teacherId === currentTeacherId &&
+        new Date(s.date).getDate() === selectedDate
+    );
+
+    // Merge with bookings to show full schedule (optional, focusing on slots management first)
+    const displayedEvents = daySlots.map(slot => ({
+        id: slot.id,
+        title: slot.status === 'booked' ? 'Créneau Réservé' : 'Disponibilité',
+        time: slot.time,
+        location: 'Studio Marais',
+        person: slot.status === 'booked' ? 'Élève inscrit' : 'En attente',
+        style: 'Général',
+        color: slot.status === 'booked' ? 'bg-purple-500' : 'bg-zinc-700',
+        price: '30 CHF',
+        date: new Date(slot.date).getDate(),
+        status: slot.status,
+        type: 'slot'
+    }));
+
+    const handleAddSlot = () => {
+        // Construct date string for 2025-12-XX based on selectedDate mock
+        const dateStr = `2025-12-${selectedDate}`;
+        addSlot(currentTeacherId, dateStr, newSlotTime);
+        setIsAddModalOpen(false);
+    };
+
+    const handleDeleteSlot = (id) => {
+        if (confirm('Supprimer ce créneau ?')) {
+            removeSlot(id);
+            setSelectedEvent(null);
+        }
+    };
 
     return (
         <div className="pb-24 animate-in fade-in duration-500 min-h-screen bg-zinc-950">
@@ -74,7 +74,9 @@ const Calendar = () => {
                         <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest mt-1">Novembre 2024</p>
                     </div>
                     {isTeacher && (
-                        <button className="h-12 w-12 bg-purple-600 rounded-2xl flex items-center justify-center text-white shadow-[0_10px_20px_rgba(147,51,234,0.3)] hover:scale-110 active:scale-95 transition-all">
+                        <button
+                            onClick={() => setIsAddModalOpen(true)}
+                            className="h-12 w-12 bg-purple-600 rounded-2xl flex items-center justify-center text-white shadow-[0_10px_20px_rgba(147,51,234,0.3)] hover:scale-110 active:scale-95 transition-all">
                             <Plus size={24} />
                         </button>
                     )}
@@ -87,8 +89,8 @@ const Calendar = () => {
                             key={day.date}
                             onClick={() => setSelectedDate(day.date)}
                             className={`flex-1 flex flex-col items-center py-4 rounded-2xl transition-all ${selectedDate === day.date
-                                    ? 'bg-purple-600 text-white shadow-xl scale-105'
-                                    : 'bg-zinc-900 text-zinc-500 hover:bg-zinc-800'
+                                ? 'bg-purple-600 text-white shadow-xl scale-105'
+                                : 'bg-zinc-900 text-zinc-500 hover:bg-zinc-800'
                                 }`}
                         >
                             <span className="text-[10px] font-black uppercase tracking-widest mb-2">{day.name}</span>
@@ -105,8 +107,8 @@ const Calendar = () => {
                     <button className="text-[10px] font-black text-purple-500 uppercase tracking-widest">Tout voir</button>
                 </div>
 
-                {filteredEvents.length > 0 ? (
-                    filteredEvents.map((event) => (
+                {displayedEvents.length > 0 ? (
+                    displayedEvents.map((event) => (
                         <button
                             key={event.id}
                             onClick={() => setSelectedEvent(event)}
@@ -212,12 +214,18 @@ const Calendar = () => {
                                         </div>
                                         <div>
                                             <p className="text-sm font-bold text-white">{selectedEvent.person}</p>
-                                            <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Confirmé</p>
+                                            <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">
+                                                {selectedEvent.status === 'booked' ? 'Confirmé' : 'Disponible'}
+                                            </p>
                                         </div>
                                     </div>
-                                    <button className="p-2 text-zinc-600 hover:text-white transition-colors">
-                                        <MoreHorizontal size={20} />
-                                    </button>
+                                    {isTeacher && selectedEvent.type === 'slot' && (
+                                        <button
+                                            onClick={() => handleDeleteSlot(selectedEvent.id)}
+                                            className="p-2 text-red-500 hover:bg-red-500/10 rounded-xl transition-colors">
+                                            <Trash2 size={20} />
+                                        </button>
+                                    )}
                                 </div>
                             </div>
 
@@ -228,6 +236,33 @@ const Calendar = () => {
                                 Fermer
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {isAddModalOpen && (
+                <div className="fixed inset-0 z-[70] flex items-center justify-center p-6 bg-zinc-950/80 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="bg-zinc-900 w-full max-w-sm rounded-[2rem] border border-zinc-800 p-6 animate-in zoom-in duration-300 space-y-4">
+                        <div className="flex justify-between items-center">
+                            <h3 className="text-xl font-black text-white uppercase italic">Ajouter un créneau</h3>
+                            <button onClick={() => setIsAddModalOpen(false)}><X size={20} className="text-zinc-500" /></button>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-zinc-500 uppercase">Heure de début</label>
+                            <input
+                                type="time"
+                                value={newSlotTime}
+                                onChange={(e) => setNewSlotTime(e.target.value)}
+                                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-white font-bold"
+                            />
+                        </div>
+
+                        <button
+                            onClick={handleAddSlot}
+                            className="w-full py-3 bg-purple-600 text-white rounded-xl font-bold uppercase tracking-wide hover:bg-purple-500 active:scale-95 transition-all">
+                            Ajouter Disponibilité
+                        </button>
                     </div>
                 </div>
             )}

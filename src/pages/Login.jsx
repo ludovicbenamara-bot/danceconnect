@@ -1,26 +1,40 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Github, Chrome, ArrowRight, ChevronLeft, ShieldCheck } from 'lucide-react';
+import { useData } from '../context/DataContext';
 
 const Login = () => {
     const navigate = useNavigate();
+    const { login } = useData();
     const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState('');
 
-    const handleLogin = (e) => {
+    const handleLogin = async (e) => {
         e.preventDefault();
         setIsLoading(true);
-        // Mock auth delay
-        setTimeout(() => {
-            // For now, if no role is saved, default to student but let the user select during signup
-            // If they are logging in, we assume they have a role. 
-            // Mock: email containing 'teacher' logs in as teacher.
-            const role = email.includes('teacher') ? 'teacher' : 'student';
-            localStorage.setItem('userRole', role);
-            localStorage.setItem('isLoggedIn', 'true');
-            navigate(role === 'teacher' ? '/teacher' : '/student');
+        setError('');
+        try {
+            await login(email, password);
+            // Navigation will be handled by the protected route wrapper or effect in App.jsx? 
+            // Actually, we should navigate here or rely on state. 
+            // For now, let's navigate based on simple logic or fetch user afterwards.
+            // Since login doesn't return the user immediately in the same way (async), 
+            // we can trust session update or just redirect to home/profile.
+            // We'll redirect to a generic page and let the App router (if updated) handle it.
+            // But we don't have role immediately without fetching. 
+            // Let's assume student for now or redirect to landing.
+            // Better: The onAuthStateChange in context will update session. 
+            // We can check user role if we wanted, but let's just go mock-style for now:
+            navigate('/student'); // Default redirect, can be improved later
+        } catch (err) {
+            console.error(err);
+            console.error(err);
+            setError(err.message || 'Erreur de connexion : Vérifiez vos identifiants.');
+        } finally {
             setIsLoading(false);
-        }, 1500);
+        }
     };
 
     return (
@@ -66,6 +80,23 @@ const Login = () => {
                             />
                         </div>
                     </div>
+
+                    <div className="space-y-1.5">
+                        <label className="text-[10px] text-zinc-600 font-black uppercase tracking-widest ml-1">Mot de passe</label>
+                        <div className="relative group">
+                            <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-purple-500 transition-colors" size={18} />
+                            <input
+                                type="password"
+                                required
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                placeholder="••••••••"
+                                className="w-full bg-zinc-900 border border-zinc-800 rounded-2xl py-4 pl-12 pr-4 text-sm text-white focus:border-purple-500 focus:bg-zinc-950 transition-all outline-none shadow-xl"
+                            />
+                        </div>
+                    </div>
+
+                    {error && <p className="text-red-500 text-xs px-2 font-bold">{error}</p>}
 
                     <button
                         disabled={isLoading || !email}

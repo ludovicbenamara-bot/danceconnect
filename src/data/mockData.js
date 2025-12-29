@@ -86,3 +86,31 @@ export const INITIAL_BOOKINGS = [
         image: 'https://images.unsplash.com/photo-1508700929628-666bc9536e2d?auto=format&fit=crop&q=80&w=200'
     }
 ];
+
+export const INITIAL_SLOTS = [
+    { id: 1, teacherId: 1, date: '2025-12-28', time: '14:00', status: 'available' },
+    { id: 2, teacherId: 1, date: '2025-12-28', time: '16:00', status: 'available' },
+    { id: 3, teacherId: 1, date: '2025-12-29', time: '10:00', status: 'available' },
+    { id: 4, teacherId: 2, date: '2025-12-28', time: '18:00', status: 'available' }
+];
+
+export const INITIAL_CHATS = [
+    {
+        id: 1,
+        participants: [1, 'student-1'], // teacherId=1, studentId='student-1'
+        updatedAt: '2024-12-25T14:20:00',
+        messages: [
+            { id: 1, senderId: 'student-1', text: 'Hello ! J\'ai une question sur le cours de demain.', timestamp: '2024-12-25T14:15:00' },
+            { id: 2, senderId: 1, text: 'Oui, dis-moi tout ? 😊', timestamp: '2024-12-25T14:16:00' },
+            { id: 3, senderId: 'student-1', text: 'Est-ce que je dois apporter des chaussures spécifiques ?', timestamp: '2024-12-25T14:18:00' }
+        ]
+    },
+    {
+        id: 2,
+        participants: [2, 'student-1'],
+        updatedAt: '2024-12-24T18:00:00',
+        messages: [
+            { id: 1, senderId: 2, text: 'Merci pour le cours de hier !', timestamp: '2024-12-24T18:00:00' }
+        ]
+    }
+];

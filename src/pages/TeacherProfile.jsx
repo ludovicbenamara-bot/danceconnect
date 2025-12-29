@@ -57,9 +57,11 @@ const TeacherProfile = () => {
                     </button>
                     <div className="flex gap-2">
                         <button
-                            onClick={() => {
-                                const chatId = startChat(teacher.id);
-                                navigate('/social', { state: { selectedChat: { id: chatId } } });
+                            onClick={async () => {
+                                const chatId = await startChat(teacher.id);
+                                if (chatId) {
+                                    navigate('/social', { state: { selectedChat: { id: chatId } } });
+                                }
                             }}
                             className="p-2 bg-black/50 backdrop-blur-md rounded-full text-white hover:bg-black/70 transition-colors"
                         >

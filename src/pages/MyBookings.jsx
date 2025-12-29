@@ -87,9 +87,11 @@ const MyBookings = () => {
                                             Modifier
                                         </button>
                                         <button
-                                            onClick={() => {
-                                                const chatId = startChat(booking.teacherId);
-                                                navigate('/social', { state: { selectedChat: { id: chatId } } });
+                                            onClick={async () => {
+                                                const chatId = await startChat(booking.teacherId);
+                                                if (chatId) {
+                                                    navigate('/social', { state: { selectedChat: { id: chatId } } });
+                                                }
                                             }}
                                             className="h-10 w-10 bg-zinc-800 rounded-full flex items-center justify-center text-white border border-zinc-700 hover:bg-zinc-700 transition-colors">
                                             <MessageCircle size={20} />

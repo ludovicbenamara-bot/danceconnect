@@ -13,12 +13,15 @@ const Social = () => {
     const [selectedChat, setSelectedChat] = useState(location.state?.selectedChat || null);
     const [messageInput, setMessageInput] = useState('');
 
+    if (!currentUser) return <div className="p-10 text-white">Chargement...</div>;
+
     // Transform chats to display format
-    const myChats = chats.filter(c => c.participants.includes(currentUser.id)).map(chat => {
+    const myChats = chats.filter(c => c.participants && c.participants.includes(currentUser.id)).map(chat => {
         const otherParticipantId = chat.participants.find(p => p !== currentUser.id);
         const otherParticipant = teachers.find(t => t.id === otherParticipantId) || { name: 'Utilisateur', image: 'https://via.placeholder.com/150' };
 
-        const lastMessage = chat.messages[chat.messages.length - 1];
+        const messages = chat.messages || [];
+        const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
 
         return {
             id: chat.id,
@@ -26,9 +29,9 @@ const Social = () => {
             image: otherParticipant.image,
             lastMsg: lastMessage ? lastMessage.text : 'Nouvelle conversation',
             time: lastMessage ? new Date(lastMessage.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
-            unread: 0, // Simplified for now
-            online: true, // Simplified
-            messages: chat.messages,
+            unread: 0,
+            online: true,
+            messages: messages,
             originalChat: chat
         };
     });
@@ -44,7 +47,11 @@ const Social = () => {
     const activeChatData = selectedChat ? myChats.find(c => c.id === selectedChat.id) : null;
     const messagesToDisplay = activeChatData ? activeChatData.messages : [];
 
-    if (selectedChat) {
+    // Use activeChatData for display if available (ensures we have latest data/images from Context transformation)
+    // If we only have an ID from navigation state, we MUST wait for context mapping to find the chat
+    const displayChat = activeChatData;
+
+    if (displayChat) {
         return (
             <div className="fixed inset-0 bg-zinc-950 z-50 flex flex-col max-w-md mx-auto shadow-2xl">
                 {/* Chat Header */}
@@ -54,12 +61,12 @@ const Social = () => {
                             <ChevronLeft size={24} />
                         </button>
                         <div className="relative">
-                            <img src={selectedChat.image} alt="" className="w-10 h-10 rounded-full object-cover" />
-                            {selectedChat.online && <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-zinc-900 rounded-full" />}
+                            <img src={displayChat.image} alt="" className="w-10 h-10 rounded-full object-cover" />
+                            {displayChat.online && <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-zinc-900 rounded-full" />}
                         </div>
                         <div>
-                            <h2 className="font-bold text-sm text-white">{selectedChat.name}</h2>
-                            <p className="text-[10px] text-green-500 font-bold">{selectedChat.online ? 'En ligne' : 'Hors ligne'}</p>
+                            <h2 className="font-bold text-sm text-white">{displayChat.name}</h2>
+                            <p className="text-[10px] text-green-500 font-bold">{displayChat.online ? 'En ligne' : 'Hors ligne'}</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">

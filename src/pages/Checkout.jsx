@@ -7,16 +7,13 @@ const Checkout = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const data = useData();
-    console.log('Checkout Render - Data Context:', data);
 
     // Safety check for context
     if (!data) {
-        console.error('UseData is invalid/null');
         return <div className="text-white pt-20">Error: Context not loaded</div>;
     }
 
     const { bookSlot, currentUser, loading } = data;
-    console.log('Checkout Render - User:', currentUser, 'Loading:', loading);
 
     const [isProcessing, setIsProcessing] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
@@ -28,7 +25,6 @@ const Checkout = () => {
         price: 'CHF 65',
         slot: 'Lundi 28 Déc. - 14:00'
     };
-    console.log('Checkout Render - Params:', stateParams);
 
     const { teacherName, price, slot, slotId } = stateParams;
 
